@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranch du Phoenix - Suivi des Défis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: #f1f5f2;
+        }
+        .status-0 { border-left: 6px solid #cbd5e1; }
+        .status-1 { border-left: 6px solid #b45309; }
+        .status-2 { border-left: 6px solid #eab308; }
+        .status-3 { border-left: 6px solid #334155; }
+
+        .btn-touch {
+            min-width: 44px;
+            min-height: 44px;
+        }
+        .btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; font-size: 1.15rem; border: 1px solid #065f46; border-radius: 9999px; color: #a7f3d0; background: transparent; cursor: pointer; transition: background-color .15s; }
+        .btn-icon:hover { background-color: rgba(6, 78, 59, .6); }
+        .btn-icon.hidden { display: none; }
+        .btn-icon-warn { border-color: #9a3412; background-color: rgba(67, 20, 7, .5); }
+        .btn-icon-warn:hover { background-color: rgba(124, 45, 18, .6); }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen pb-12">
+
+    <header class="sticky top-0 z-40 bg-emerald-950/95 backdrop-blur-md border-b border-emerald-900 shadow-md transition-all">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <a href="./" title="Retour à l'accueil" class="text-2xl hover:opacity-70 transition-opacity">🌿</a>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold text-white tracking-wide">Ranch du Phoenix</h1>
+                        <p id="session-subtitle" class="text-xs text-emerald-300 font-medium tracking-wider uppercase">Chargement…</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 flex-wrap justify-center">
+                    <a href="./" title="Accueil" aria-label="Accueil" class="btn-icon">🏠</a>
+                    <button
+                        id="btn-close-session"
+                        onclick="closeSession()"
+                        title="Clôturer la session"
+                        aria-label="Clôturer la session"
+                        class="btn-icon btn-icon-warn"
+                    >🏁</button>
+
+                    <div class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 px-6 py-2 rounded-full shadow-lg font-bold flex items-center gap-3 border border-yellow-400">
+                        <span class="text-xs uppercase tracking-widest opacity-80">Score Équipes :</span>
+                        <span id="total-score" class="text-2xl font-black tabular-nums">0</span>
+                        <span class="text-xs uppercase tracking-wider">pts</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="archived-banner" class="hidden bg-slate-900/60 text-slate-100 text-sm rounded-xl px-4 py-2 text-center flex flex-wrap justify-center gap-x-2">
+                <span>Cette session est clôturée.</span>
+                <a id="archived-link" href="#" class="underline font-semibold">Voir les résultats</a>
+                <span>·</span>
+                <a href="./" class="underline font-semibold">Retour à l'accueil</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 mt-8">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">En attente</div>
+                <div id="stat-0" class="text-xl font-extrabold text-slate-400 tabular-nums">0</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <div class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">1ère Réussite (3 pts)</div>
+                <div id="stat-1" class="text-xl font-extrabold text-amber-700 tabular-nums">0</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <div class="text-xs font-bold text-yellow-600 uppercase tracking-wider mb-1">2ème Réussite (7 pts)</div>
+                <div id="stat-2" class="text-xl font-extrabold text-yellow-500 tabular-nums">0</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                <div class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">3+ Réussites (0 pt)</div>
+                <div id="stat-3" class="text-xl font-extrabold text-slate-600 tabular-nums">0</div>
+            </div>
+        </div>
+
+        <div id="challenges-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </main>
+
+    <div id="solution-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300" onclick="closeModalOnBackdrop(event)">
+        <div id="modal-content" class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-start bg-emerald-50 rounded-t-2xl">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-800">Solution du Défi</span>
+                    <h2 id="modal-challenge-title" class="text-lg font-bold text-emerald-950 mt-0.5">Titre du Défi</h2>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto text-slate-700 leading-relaxed text-sm sm:text-base flex-1">
+                <p id="modal-challenge-solution">Explication de la solution ici...</p>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex justify-end">
+                <button onclick="closeModal()" class="px-5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-sm font-medium rounded-xl transition-colors shadow-sm">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="close-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6">
+            <h2 class="text-lg font-bold text-emerald-950 mb-2">Clôturer la session ?</h2>
+            <p class="text-sm text-slate-600 mb-6">Cette action est irréversible : plus aucun défi ne pourra être encodé pour cette session une fois clôturée.</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="hideCloseConfirm()" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100">Annuler</button>
+                <button id="btn-confirm-close" onclick="confirmCloseSession()" class="px-5 py-2 bg-orange-700 hover:bg-orange-800 text-white font-bold rounded-xl">Clôturer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <script>
+        const SESSION_ID = location.pathname.split('/').filter(Boolean).pop();
+        const API_BASE = `api/sessions/${SESSION_ID}`;
+
+        let challenges = [];
+        let sessionInfo = null;
+
+        function calculatePoints(count) {
+            if (count === 1) return 3;
+            if (count === 2) return 7;
+            return 0;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        function convertUrlsToLinks(text) {
+            if (!text) return "";
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const escaped = escapeHtml(text);
+            const withLinks = escaped.replace(urlRegex, (url) =>
+                `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-800 font-bold underline break-all">🔗 Voir la solution vidéo</a>`
+            );
+            return withLinks.replace(/\n/g, '<br>');
+        }
+
+        function findChallenge(id) {
+            return challenges.find(c => String(c.challenge_id) === String(id));
+        }
+
+        async function loadSession() {
+            const res = await fetch(API_BASE);
+            if (!res.ok) {
+                document.getElementById('session-subtitle').textContent = 'Session introuvable';
+                return;
+            }
+            const data = await res.json();
+            sessionInfo = data.session;
+            challenges = data.challenges;
+
+            updateHeader();
+            renderChallenges();
+            updateGlobalMetrics();
+        }
+
+        function updateHeader() {
+            document.getElementById('session-subtitle').textContent = `${sessionInfo.client_name} · ${sessionInfo.nb_equipes} équipe(s)`;
+
+            const closeBtn = document.getElementById('btn-close-session');
+            const banner = document.getElementById('archived-banner');
+
+            if (sessionInfo.status === 'archived') {
+                closeBtn.classList.add('hidden');
+                banner.classList.remove('hidden');
+                document.getElementById('archived-link').href = `resultats/${SESSION_ID}`;
+            } else {
+                closeBtn.classList.remove('hidden');
+                banner.classList.add('hidden');
+            }
+        }
+
+        function getStatusClass(count) {
+            if (count === 0) return 'status-0';
+            if (count === 1) return 'status-1';
+            if (count === 2) return 'status-2';
+            return 'status-3';
+        }
+
+        function updateGlobalMetrics() {
+            let totalScore = 0;
+            let stats = { 0: 0, 1: 0, 2: 0, 3: 0 };
+
+            challenges.forEach(c => {
+                totalScore += calculatePoints(c.count);
+                if (c.count >= 3) stats[3]++; else stats[c.count]++;
+            });
+
+            document.getElementById('total-score').innerText = totalScore;
+            document.getElementById('stat-0').innerText = stats[0];
+            document.getElementById('stat-1').innerText = stats[1];
+            document.getElementById('stat-2').innerText = stats[2];
+            document.getElementById('stat-3').innerText = stats[3];
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            toast.className = `pointer-events-auto flex items-center w-full p-4 text-slate-700 bg-white rounded-xl shadow-xl border-l-4 transition-all duration-300 transform translate-y-2 opacity-0`;
+
+            if (type === 'success') toast.classList.add('border-emerald-600');
+            else if (type === 'info') toast.classList.add('border-sky-600');
+            else if (type === 'warning') toast.classList.add('border-amber-500');
+            else if (type === 'danger') toast.classList.add('border-rose-600');
+
+            toast.innerHTML = `
+                <div class="text-sm font-medium flex-1">${escapeHtml(message)}</div>
+                <button class="ml-3 text-slate-400 hover:text-slate-600 text-xs font-bold" onclick="this.parentElement.remove()">✕</button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 2800);
+        }
+
+        async function increment(id) {
+            const c = findChallenge(id);
+            if (!c || c.count >= 3 || sessionInfo.status !== 'in_progress') return;
+            const previous = c.count;
+            c.count = previous + 1;
+            updateCardDOM(id);
+            updateGlobalMetrics();
+
+            try {
+                const res = await fetch(`${API_BASE}/challenges/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'increment' })
+                });
+                if (!res.ok) throw new Error('http_error');
+                const data = await res.json();
+                c.count = data.count;
+                updateCardDOM(id);
+                updateGlobalMetrics();
+
+                if (c.count === 3) {
+                    showToast(`⚠️ Hors-limite : 3ème réalisation. Le score de ce défi redescend à 0 pt !`, 'warning');
+                } else {
+                    showToast(`🎯 Défi validé ! (+1 Réalisation)`, 'success');
+                }
+            } catch (e) {
+                c.count = previous;
+                updateCardDOM(id);
+                updateGlobalMetrics();
+                showToast('⚠️ Échec de la synchronisation, réessayez.', 'danger');
+            }
+        }
+
+        async function decrement(id) {
+            const c = findChallenge(id);
+            if (!c || c.count <= 0 || sessionInfo.status !== 'in_progress') return;
+            const previous = c.count;
+            c.count = previous - 1;
+            updateCardDOM(id);
+            updateGlobalMetrics();
+
+            try {
+                const res = await fetch(`${API_BASE}/challenges/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'decrement' })
+                });
+                if (!res.ok) throw new Error('http_error');
+                const data = await res.json();
+                c.count = data.count;
+                updateCardDOM(id);
+                updateGlobalMetrics();
+                showToast(`🔄 Modification enregistrée (Réalisation retirée).`, 'info');
+            } catch (e) {
+                c.count = previous;
+                updateCardDOM(id);
+                updateGlobalMetrics();
+                showToast('⚠️ Échec de la synchronisation, réessayez.', 'danger');
+            }
+        }
+
+        function closeSession() {
+            document.getElementById('close-confirm-modal').classList.remove('hidden');
+        }
+
+        function hideCloseConfirm() {
+            document.getElementById('close-confirm-modal').classList.add('hidden');
+        }
+
+        async function confirmCloseSession() {
+            const btn = document.getElementById('btn-confirm-close');
+            btn.disabled = true;
+            btn.textContent = 'Clôture en cours…';
+
+            try {
+                const res = await fetch(`${API_BASE}/close`, { method: 'POST' });
+                if (!res.ok) throw new Error('http_error');
+                window.location.href = `resultats/${SESSION_ID}`;
+            } catch (e) {
+                hideCloseConfirm();
+                btn.disabled = false;
+                btn.textContent = 'Clôturer';
+                showToast('⚠️ Échec de la clôture, réessayez.', 'danger');
+            }
+        }
+
+        function updateCardDOM(id) {
+            const c = findChallenge(id);
+            const card = document.getElementById(`card-${id}`);
+            if (!card || !c) return;
+
+            const countDisplay = document.getElementById(`count-${id}`);
+            const pointsDisplay = document.getElementById(`points-${id}`);
+            const btnMinus = document.getElementById(`btn-minus-${id}`);
+            const btnPlus = document.getElementById(`btn-plus-${id}`);
+
+            card.className = card.className.replace(/status-\d/g, getStatusClass(c.count));
+            countDisplay.innerText = c.count;
+            pointsDisplay.innerText = `${calculatePoints(c.count)} pts`;
+
+            if (c.count === 0) btnMinus.classList.add('opacity-20', 'cursor-not-allowed');
+            else btnMinus.classList.remove('opacity-20', 'cursor-not-allowed');
+
+            if (c.count >= 3) {
+                btnPlus.classList.add('opacity-20', 'cursor-not-allowed');
+                pointsDisplay.classList.replace('text-emerald-700', 'text-slate-400');
+            } else {
+                btnPlus.classList.remove('opacity-20', 'cursor-not-allowed');
+                pointsDisplay.classList.replace('text-slate-400', 'text-emerald-700');
+            }
+        }
+
+        function openSolution(id) {
+            const c = findChallenge(id);
+            if (!c) return;
+
+            document.getElementById('modal-challenge-title').innerText = `Défi n°${c.number} - ${c.title}`;
+            const modalSolution = document.getElementById('modal-challenge-solution');
+            modalSolution.innerHTML = c.solution && c.solution.trim() !== ""
+                ? convertUrlsToLinks(c.solution)
+                : "Aucune consigne ou solution secrète n'a encore été configurée pour ce défi. Épatez le maître du jeu !";
+
+            const modal = document.getElementById('solution-modal');
+            const modalContent = document.getElementById('modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('solution-modal');
+            const modalContent = document.getElementById('modal-content');
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                hideCloseConfirm();
+            }
+        });
+
+        function closeModalOnBackdrop(e) {
+            if (e.target.id === 'solution-modal') closeModal();
+        }
+
+        function renderChallenges() {
+            const grid = document.getElementById('challenges-grid');
+            const readOnly = sessionInfo.status !== 'in_progress';
+            grid.innerHTML = '';
+
+            challenges.forEach(c => {
+                const points = calculatePoints(c.count);
+                const statusClass = getStatusClass(c.count);
+
+                const cardHtml = `
+                    <div id="card-${c.challenge_id}" class="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-between gap-4 ${statusClass}">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-emerald-950 text-base leading-tight truncate sm:whitespace-normal">
+                                    Défi n°${c.number} - ${escapeHtml(c.title)}
+                                </h3>
+                                <button
+                                    onclick="openSolution('${c.challenge_id}')"
+                                    class="inline-flex items-center justify-center text-xs text-slate-400 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 rounded-full h-5 w-5 transition-colors shrink-0"
+                                    title="Voir la solution"
+                                >
+                                    ❓
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-3 mt-2 text-xs font-semibold">
+                                <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200/40">
+                                    Réalisé : <span id="count-${c.challenge_id}" class="font-bold tabular-nums">${c.count}</span> / 3
+                                </span>
+                                <span id="points-${c.challenge_id}" class="text-emerald-700 font-bold tabular-nums bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                                    ${points} pts
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0 ${readOnly ? 'hidden' : ''}">
+                            <button
+                                id="btn-minus-${c.challenge_id}"
+                                onclick="decrement('${c.challenge_id}')"
+                                class="btn-touch px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-lg transition-colors"
+                            >-</button>
+                            <button
+                                id="btn-plus-${c.challenge_id}"
+                                onclick="increment('${c.challenge_id}')"
+                                class="btn-touch px-3.5 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold rounded-xl text-lg transition-colors"
+                            >+</button>
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHtml);
+                updateCardDOM(c.challenge_id);
+            });
+        }
+
+        async function pollState() {
+            if (!sessionInfo || sessionInfo.status !== 'in_progress') return;
+            try {
+                const res = await fetch(API_BASE, { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                sessionInfo = data.session;
+
+                let changed = false;
+                data.challenges.forEach(updated => {
+                    const c = findChallenge(updated.challenge_id);
+                    if (c && c.count !== updated.count) {
+                        c.count = updated.count;
+                        updateCardDOM(updated.challenge_id);
+                        changed = true;
+                    }
+                });
+                if (changed) updateGlobalMetrics();
+
+                if (sessionInfo.status !== 'in_progress') {
+                    challenges = data.challenges;
+                    updateHeader();
+                    renderChallenges();
+                }
+            } catch (e) { /* silencieux, on retentera au prochain cycle */ }
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadSession();
+            setInterval(pollState, 4000);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') pollState();
+            });
+        });
+    </script>
+</body>
+</html>

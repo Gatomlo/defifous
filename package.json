@@ -1,0 +1,25 @@
+{
+  "name": "defis.ranchduphoenix.be",
+  "version": "1.0.0",
+  "description": "Suivi des défis du Ranch du Phoenix : encodage multi-appareils, archivage des sessions, résultats et classement. Node.js + SQLite, montable dans node-gateway.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.22.3"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "gateway": {
+    "route": "ranch",
+    "name": "Défis du Ranch",
+    "description": "Encodage en direct des défis réalisés, résultats et classement des sessions de team building.",
+    "color": "#065F46",
+    "tags": [
+      "team building"
+    ]
+  }
+}

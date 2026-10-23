@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranch du Phoenix - Connexion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'DM Sans', sans-serif; background-color: #f1f5f2; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen">
+
+    <header class="bg-emerald-950 border-b border-emerald-900 shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
+            <span class="text-2xl">🌿</span>
+            <div>
+                <h1 class="text-lg sm:text-xl font-bold text-white tracking-wide">Ranch du Phoenix</h1>
+                <p class="text-xs text-emerald-300 font-medium tracking-wider uppercase">Espace animateurs</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 mt-12">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <h2 id="title" class="text-lg font-bold text-emerald-950 mb-1">Connexion</h2>
+            <p id="subtitle" class="text-sm text-slate-500 mb-5"></p>
+
+            <form id="form" class="space-y-3 hidden">
+                <input id="password" type="password" required autocomplete="current-password" placeholder="Mot de passe"
+                    class="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <input id="confirm" type="password" autocomplete="new-password" placeholder="Confirmer le mot de passe"
+                    class="hidden w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <p id="error" class="text-sm text-rose-600 hidden"></p>
+                <button id="submit" type="submit" class="w-full px-6 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-xl transition-colors">Se connecter</button>
+            </form>
+            <p id="loading" class="text-sm text-slate-400 italic">Chargement…</p>
+        </div>
+        <p class="text-center mt-4 text-sm"><a href="classement" class="text-emerald-700 underline">Voir le classement des sessions</a></p>
+    </main>
+
+    <script>
+        const baseHref = document.querySelector('base').getAttribute('href');
+        const form = document.getElementById('form');
+        const errorBox = document.getElementById('error');
+        let setupMode = false;
+
+        function destination() {
+            const next = new URLSearchParams(location.search).get('next');
+            const safe = next && /^\/(?![\/\\])/.test(next) && next.startsWith(baseHref);
+            return safe ? next : './';
+        }
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.remove('hidden');
+        }
+
+        async function init() {
+            const status = await (await fetch('api/auth/status')).json();
+            if (status.configured && status.authenticated) {
+                location.replace(destination());
+                return;
+            }
+            setupMode = !status.configured;
+            document.getElementById('loading').classList.add('hidden');
+            form.classList.remove('hidden');
+            if (setupMode) {
+                document.getElementById('title').textContent = 'Créer le mot de passe administrateur';
+                document.getElementById('subtitle').textContent = 'Première utilisation : choisissez le mot de passe qui protège l\'espace animateurs (8 caractères minimum).';
+                document.getElementById('confirm').classList.remove('hidden');
+                document.getElementById('confirm').required = true;
+                document.getElementById('password').autocomplete = 'new-password';
+                document.getElementById('submit').textContent = 'Créer le mot de passe';
+            } else {
+                document.getElementById('subtitle').textContent = 'Saisissez le mot de passe animateur.';
+            }
+            document.getElementById('password').focus();
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorBox.classList.add('hidden');
+            const password = document.getElementById('password').value;
+            if (setupMode && password !== document.getElementById('confirm').value) {
+                showError('Les deux mots de passe ne correspondent pas.');
+                return;
+            }
+            const res = await fetch(setupMode ? 'api/auth/setup' : 'api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            if (res.ok) {
+                location.replace(destination());
+                return;
+            }
+            if (res.status === 409) { location.reload(); return; }
+            const data = await res.json().catch(() => ({}));
+            showError(data.message || 'Une erreur est survenue, réessayez.');
+        });
+
+        init();
+    </script>
+</body>
+</html>

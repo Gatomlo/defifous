@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranch du Phoenix - Classement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'DM Sans', sans-serif; background-color: #f1f5f2; }
+        .btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; font-size: 1.15rem; border: 1px solid #065f46; border-radius: 9999px; color: #a7f3d0; transition: background-color .15s; }
+        .btn-icon:hover { background-color: rgba(6, 78, 59, .6); }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen pb-12">
+
+    <header class="bg-emerald-950 border-b border-emerald-900 shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <a href="./" title="Retour à l'accueil" class="text-2xl hover:opacity-70 transition-opacity">🌿</a>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold text-white tracking-wide">Ranch du Phoenix</h1>
+                    <p class="text-xs text-emerald-300 font-medium tracking-wider uppercase">Classement de toutes les sessions</p>
+                </div>
+            </div>
+            <a href="./" title="Accueil" aria-label="Accueil" class="btn-icon">🏠</a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 mt-8">
+        <div id="content">
+            <p class="text-center text-slate-400 italic py-16">Chargement du classement…</p>
+        </div>
+    </main>
+
+    <script>
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        function formatDuree(heures) {
+            const totalMinutes = Math.round(heures * 60);
+            const h = Math.floor(totalMinutes / 60);
+            const m = totalMinutes % 60;
+            return h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m} min`;
+        }
+
+        function medalFor(rank) {
+            if (rank === 1) return '🥇 ';
+            if (rank === 2) return '🥈 ';
+            if (rank === 3) return '🥉 ';
+            return '';
+        }
+
+        async function load() {
+            const content = document.getElementById('content');
+            const sessions = await (await fetch('api/classement')).json();
+
+            if (!sessions.length) {
+                content.innerHTML = `<p class="text-center text-slate-400 italic py-16">Aucune session archivée pour le moment.</p>`;
+                return;
+            }
+
+            content.innerHTML = `
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                                    <th class="text-left px-4 py-3 font-bold">Rang</th>
+                                    <th class="text-left px-4 py-3 font-bold">Client</th>
+                                    <th class="text-left px-4 py-3 font-bold">Date</th>
+                                    <th class="text-center px-4 py-3 font-bold">Équipes</th>
+                                    <th class="text-center px-4 py-3 font-bold">Durée</th>
+                                    <th class="text-center px-4 py-3 font-bold">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${sessions.map(s => `
+                                    <tr class="border-t border-slate-100 hover:bg-emerald-50/50 transition-colors">
+                                        <td class="px-4 py-3 font-bold text-emerald-900">${medalFor(s.rank)}${s.rank}</td>
+                                        <td class="px-4 py-3">
+                                            <a href="resultats/${s.id}" class="font-semibold text-slate-800 hover:text-emerald-700 hover:underline">${escapeHtml(s.client_name)}</a>
+                                        </td>
+                                        <td class="px-4 py-3 text-slate-500">${escapeHtml(s.session_date)}</td>
+                                        <td class="px-4 py-3 text-center text-slate-600">${s.nb_equipes}</td>
+                                        <td class="px-4 py-3 text-center text-slate-600">${formatDuree(s.duree_heures)}</td>
+                                        <td class="px-4 py-3 text-center font-bold text-amber-700">${s.score_total} pts</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 mt-3 text-center">Classement basé sur le score ramené au nombre d'équipes et à la durée de chaque session.</p>
+            `;
+        }
+
+        load();
+    </script>
+</body>
+</html>
