@@ -47,8 +47,19 @@ test('un simple membre, un anonyme ou un droit nul n\'obtiennent rien', async ()
   }
 });
 
-test('mot de passe local inchange : creation puis acces', async () => {
-  let r = await fetch(base + '/api/auth/setup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: 'motdepasse-solide' }) });
+test('creation du mot de passe : refusee au premier visiteur derriere la passerelle', async () => {
+  const setup = (h) => fetch(base + '/api/auth/setup', { method: 'POST', headers: { 'content-type': 'application/json', ...h }, body: JSON.stringify({ password: 'motdepasse-solide' }) });
+  const anon = { 'x-test-gateway': JSON.stringify({ app: 'ranch', role: null, user: null }) };
+  assert.equal((await setup(anon)).status, 403);
+  assert.equal((await setup(gw('member'))).status, 403);
+  assert.equal((await (await get('/api/auth/status')).json()).configured, false, 'rien n\'a ete cree');
+});
+
+test('mot de passe local inchange : creation (hors passerelle) puis acces', async () => {
+  const standalone = http.createServer(app);
+  await new Promise((r) => standalone.listen(0, '127.0.0.1', r));
+  let r = await fetch(`http://127.0.0.1:${standalone.address().port}/api/auth/setup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: 'motdepasse-solide' }) });
+  standalone.close();
   assert.equal(r.status, 200);
   const cookie = r.headers.get('set-cookie').split(';')[0];
   assert.equal((await get('/api/sessions', { cookie })).status, 200);

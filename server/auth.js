@@ -4,7 +4,7 @@ const gatewayBridge = require('./gateway-bridge');
 
 const COOKIE = 'ranch_auth';
 const MAX_AGE_S = 7 * 24 * 3600;
-const MIN_LENGTH = 8;
+const MIN_LENGTH = 10;
 const MAX_LENGTH = 200;
 const MAX_FAILURES = 5;
 const LOCK_MS = 5 * 60 * 1000;
@@ -137,6 +137,10 @@ function registerAuth(app) {
     });
 
     app.post('/api/auth/setup', (req, res) => {
+        // Derriere node-gateway, c'est elle qui authentifie : le premier visiteur ne peut plus s'approprier l'outil.
+        if (gatewayBridge.behindGateway(req) && !isGatewayAdmin(req)) {
+            return res.status(403).json({ error: 'forbidden', message: 'Connectez-vous à la passerelle avec un compte ayant le droit admin.' });
+        }
         if (isConfigured()) return res.status(409).json({ error: 'already_configured' });
         const { password } = req.body || {};
         const problem = validatePassword(password);
