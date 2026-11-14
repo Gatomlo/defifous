@@ -29,3 +29,5 @@ Node.js ≥ 22.13 (`node:sqlite` sans flag ; testé v24) + Express 4 (aligné su
 
 ## Méthode
 Répondre en français, concis. Tester l'auth avec une base temporaire (`DATA_DIR`), jamais sur `data/ranch.db`. Éviter `confirm()` natif : utiliser des modales intégrées.
+
+- Connexion centralisée (node-gateway) : `server/gateway-bridge.js` (copie de `node-gateway/docs/gateway-bridge.js`) + `isAuthenticated` dans `server/auth.js`. Si la passerelle fournit `req.gateway` avec le droit **admin** sur cet outil, la requête est authentifiée (pages et API), sans cookie ni session : la passerelle est interrogée à chaque requête, donc un accès retiré ou une déconnexion là-bas coupe l'accès ici aussitôt. Un simple « membre » n'obtient rien. Le mot de passe local reste valable. Hors passerelle : sans effet. Test : `test/gateway-bridge.test.js` (`npm test`).

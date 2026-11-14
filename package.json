@@ -4,7 +4,8 @@
   "description": "Suivi des défis du Ranch du Phoenix : encodage multi-appareils, archivage des sessions, résultats et classement. Node.js + SQLite, montable dans node-gateway.",
   "main": "server/index.js",
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "express": "^4.22.3"

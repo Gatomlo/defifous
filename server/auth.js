@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const { getSetting, setSetting } = require('./db');
+const gatewayBridge = require('./gateway-bridge');
 
 const COOKIE = 'ranch_auth';
 const MAX_AGE_S = 7 * 24 * 3600;
@@ -73,8 +74,15 @@ function getCookie(req, name) {
     return null;
 }
 
+// Connexion centralisee de node-gateway : si la passerelle fournit req.gateway avec le droit « admin » sur cet
+// outil, la requete est authentifiee. Aucune session ni cookie : la passerelle est interrogee a chaque requete,
+// donc une deconnexion ou un droit retire la-bas coupe l'acces aussitot. Sans effet hors passerelle.
+function isGatewayAdmin(req) {
+    return !!gatewayBridge.identity(req, 'admin');
+}
+
 function isAuthenticated(req) {
-    return !!readToken(getCookie(req, COOKIE));
+    return isGatewayAdmin(req) || !!readToken(getCookie(req, COOKIE));
 }
 
 function setAuthCookie(req, res, token, maxAgeS) {
@@ -125,7 +133,7 @@ function isPublicApi(req) {
 
 function registerAuth(app) {
     app.get('/api/auth/status', (req, res) => {
-        res.json({ configured: isConfigured(), authenticated: isAuthenticated(req) });
+        res.json({ configured: isConfigured() || isGatewayAdmin(req), authenticated: isAuthenticated(req) });
     });
 
     app.post('/api/auth/setup', (req, res) => {
